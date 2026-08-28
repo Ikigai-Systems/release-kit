@@ -1,0 +1,11 @@
+{
+  "name": "changelog",
+  "description": "Decide whether a change belongs in the changelog, what its semver impact is, and how to describe it to users. Pairs with release-please.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ikigai Systems"
+  },
+  "homepage": "https://github.com/Ikigai-Systems/release-kit",
+  "repository": "https://github.com/Ikigai-Systems/release-kit",
+  "keywords": ["changelog", "semver", "release-please", "conventional-commits"]
+}

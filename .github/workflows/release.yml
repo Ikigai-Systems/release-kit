@@ -1,0 +1,56 @@
+name: Release (reusable)
+
+# Keeps an open "chore(main): release X.Y.Z" pull request up to date from the conventional
+# commits on the default branch. Merging that PR bumps the version files, writes
+# CHANGELOG.md, tags vX.Y.Z and creates the GitHub Release. Call this from a consumer repo:
+#
+#   jobs:
+#     release:
+#       uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@main
+#
+# The consumer repo supplies release-please-config.json and .release-please-manifest.json.
+
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        type: string
+        default: release-please-config.json
+      manifest-file:
+        type: string
+        default: .release-please-manifest.json
+      target-branch:
+        type: string
+        default: master
+    outputs:
+      released:
+        description: "true when this run created a release"
+        value: ${{ jobs.release.outputs.released }}
+      tag_name:
+        description: The tag created by this run, if any
+        value: ${{ jobs.release.outputs.tag_name }}
+      version:
+        description: The version released by this run, if any
+        value: ${{ jobs.release.outputs.version }}
+
+jobs:
+  release:
+    name: Release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ github.token }}
+          config-file: ${{ inputs.config-file }}
+          manifest-file: ${{ inputs.manifest-file }}
+          target-branch: ${{ inputs.target-branch }}
+

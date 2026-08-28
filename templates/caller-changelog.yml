@@ -1,0 +1,11 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  changelog:
+    uses: Ikigai-Systems/release-kit/.github/workflows/changelog-pr.yml@main
+    secrets:
+      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

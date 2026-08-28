@@ -1,0 +1,92 @@
+name: Changelog (reusable)
+
+# Classifies a pull request for the changelog and applies a conventional title plus a
+# changelog block to the PR description. release-please later reads those lines from the
+# squash commit. Call this from a consumer repo:
+#
+#   jobs:
+#     changelog:
+#       uses: Ikigai-Systems/release-kit/.github/workflows/changelog-pr.yml@main
+#       secrets:
+#         claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+on:
+  workflow_call:
+    inputs:
+      skip-label:
+        description: PR label that disables changelog automation
+        type: string
+        default: no-changelog
+      model:
+        description: Model to run the classification with
+        type: string
+        default: claude-sonnet-5
+    secrets:
+      claude_code_oauth_token:
+        required: true
+
+jobs:
+  changelog:
+    name: Changelog entry
+    runs-on: ubuntu-latest
+    # Bot pull requests never get a Claude run. Dependabot commits are prefixed `deps:`
+    # by dependabot.yml and are hidden by the release-please changelog sections.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.type != 'Bot' &&
+      !contains(github.event.pull_request.labels.*.name, inputs.skip-label)
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    concurrency:
+      group: changelog-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.claude_code_oauth_token }}
+          plugin_marketplaces: https://github.com/Ikigai-Systems/release-kit.git
+          plugins: changelog@release-kit
+          prompt: |
+            Classify pull request #${{ github.event.pull_request.number }} in
+            ${{ github.repository }} for the changelog, then apply the result to the PR.
+
+            Follow the `changelog-entry` skill exactly. It is the single source of truth
+            for what counts as changelog-worthy, which conventional type to use, how the
+            semver impact is decided, and how entries are worded.
+
+            Steps:
+            1. `gh pr diff ${{ github.event.pull_request.number }}` for the change, and
+               `gh pr view ${{ github.event.pull_request.number }} --json title,body` for
+               what the author already wrote. Read surrounding code where the diff alone
+               does not make the user-facing impact clear.
+            2. Decide: worthy or not, type, scope, semver impact, wording.
+            3. Apply it:
+               - Set the title with `gh pr edit` if it is not already the correct
+                 conventional title. If it already is, leave it alone.
+               - Rewrite only the region between `<!-- changelog:start -->` and
+                 `<!-- changelog:end -->` in the description. Create that block at the
+                 end of the body if the markers are absent. Never alter any other part
+                 of the description — the author's prose stays exactly as written.
+               - Inside the block, put the conventional lines for any ADDITIONAL entries
+                 beyond the title, plus a `BREAKING CHANGE:` footer when applicable. If
+                 the title is the only entry, leave the block empty except for a short
+                 note saying so.
+            4. Post one sticky comment summarising, in two or three lines: what a user
+               would notice, the resulting version bump, and anything you deliberately
+               left out of the changelog.
+
+            Do not modify any file in the repository. PR metadata only.
+          use_sticky_comment: "true"
+          claude_args: |
+            --model ${{ inputs.model }}
+            --max-turns 20
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr edit:*)"
+            --disallowedTools "Write,Edit,NotebookEdit,WebSearch,WebFetch"

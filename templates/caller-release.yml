@@ -1,0 +1,9 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  release:
+    uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@main

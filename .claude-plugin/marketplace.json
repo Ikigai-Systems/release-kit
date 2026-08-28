@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "release-kit",
+  "description": "Ikigai Systems release tooling: changelog judgment and semver automation shared across products",
+  "owner": {
+    "name": "Ikigai Systems"
+  },
+  "plugins": [
+    {
+      "name": "changelog",
+      "description": "Decide whether a change belongs in the changelog, what its semver impact is, and how to describe it to users",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Ikigai Systems"
+      }
+    }
+  ]
+}
