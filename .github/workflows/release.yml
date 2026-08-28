@@ -6,7 +6,7 @@ name: Release (reusable)
 #
 #   jobs:
 #     release:
-#       uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@main
+#       uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@master
 #
 # The consumer repo supplies release-please-config.json and .release-please-manifest.json.
 
