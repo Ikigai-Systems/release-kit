@@ -122,7 +122,20 @@ npx release-please release-pr --dry-run \
   --manifest-file=.release-please-manifest.json
 ```
 
-## 7. Backfill (optional)
+## 7. Expect the first PR to skip itself
+
+The pull request that *introduces* these workflows will not run them. The Claude GitHub
+App requires the workflow file to be byte-identical to the copy on the default branch —
+otherwise a PR could add or edit a Claude workflow and run it with the app's
+credentials. The job exits `success` with:
+
+> Workflow validation failed. The workflow file must exist and have identical content to
+> the version on the repository's default branch.
+
+That is a skip, not a breakage. Merge the adoption PR first, then open a small scratch PR
+to see the classification actually run.
+
+## 8. Backfill (optional)
 
 Seed `CHANGELOG.md` from history *below* the point release-please inserts at, with a note
 saying where reconstruction ends and automation begins. Future releases prepend above it.
