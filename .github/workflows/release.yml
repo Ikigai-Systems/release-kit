@@ -6,6 +6,10 @@ name: Release (reusable)
 #
 #   jobs:
 #     release:
+#       permissions:            # required — a called workflow can only narrow the
+#         contents: write       # caller's token, and most repos default to read-only
+#         pull-requests: write
+#         issues: write
 #       uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@master
 #
 # The consumer repo supplies release-please-config.json and .release-please-manifest.json.

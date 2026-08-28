@@ -6,4 +6,10 @@ on:
 
 jobs:
   release:
+    # Granted here, not in the reusable workflow: a called workflow can only narrow the
+    # caller's token, never widen it, and this repo's default is read-only.
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     uses: Ikigai-Systems/release-kit/.github/workflows/release.yml@master

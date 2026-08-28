@@ -49,6 +49,10 @@ Copy from `templates/`:
 | `release-please-config.{rails,node}.json` | `release-please-config.json` |
 | `caller-changelog.yml` | `.github/workflows/changelog.yml` |
 | `caller-release.yml` | `.github/workflows/release.yml` |
+
+Keep the `permissions:` blocks in those callers. A reusable workflow can only *narrow*
+the caller's token, never widen it, and GitHub's default for a repo is often read-only —
+so a caller without them fails immediately with `startup_failure` and no readable log.
 | `changelog-rules.md` | `.claude/rules/changelog.md` |
 
 Then create `.release-please-manifest.json` seeded with the version you are starting

@@ -6,6 +6,10 @@ name: Changelog (reusable)
 #
 #   jobs:
 #     changelog:
+#       permissions:            # required — a called workflow can only narrow the
+#         contents: read        # caller's token, and most repos default to read-only
+#         pull-requests: write
+#         id-token: write
 #       uses: Ikigai-Systems/release-kit/.github/workflows/changelog-pr.yml@master
 #       secrets:
 #         claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
