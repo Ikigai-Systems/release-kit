@@ -20,7 +20,15 @@ gh api -X PATCH repos/<owner>/<repo> \
 
 Merge commits must be off — one PR must produce exactly one commit on the default branch.
 
-## 2. Secret
+## 2. Claude GitHub App + secret
+
+Both are required, and the app is easy to miss — without it the workflow starts, runs,
+and dies with `401 ... Claude Code is not installed on this repository`. The action
+exchanges an OIDC token for an app token before it does anything else, and passing
+`github_token` does **not** skip that step.
+
+Install it on the repo (repo-admin only) — `/install-github-app` from a Claude Code
+session in the repo, or https://github.com/apps/claude — then add the token:
 
 ```bash
 claude setup-token                      # prints an OAuth token
