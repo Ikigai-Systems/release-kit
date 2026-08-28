@@ -122,7 +122,25 @@ npx release-please release-pr --dry-run \
   --manifest-file=.release-please-manifest.json
 ```
 
-## 7. Expect the first PR to skip itself
+## 7. Anchor the history, or the first release drags in everything
+
+release-please walks back to the last release it recognises. In a repo with a git tag but
+no matching GitHub Release, it finds nothing and walks to the beginning — sweeping up
+every historical commit that happens to start with `feat:` or `fix:`, including intra-branch
+work-in-progress commits from before the convention existed. The first release PR then
+lists dozens of entries like `fix: address code review findings`.
+
+Set `last-release-sha` to the commit that was the tip of the default branch *before*
+adoption:
+
+```json
+{ "last-release-sha": "<sha>" }
+```
+
+Commits at or before that SHA are ignored, so the first release contains only what the
+adoption PR itself introduced.
+
+## 8. Expect the first PR to skip itself
 
 The pull request that *introduces* these workflows will not run them. The Claude GitHub
 App requires the workflow file to be byte-identical to the copy on the default branch —
@@ -135,7 +153,7 @@ credentials. The job exits `success` with:
 That is a skip, not a breakage. Merge the adoption PR first, then open a small scratch PR
 to see the classification actually run.
 
-## 8. Backfill (optional)
+## 9. Backfill (optional)
 
 Seed `CHANGELOG.md` from history *below* the point release-please inserts at, with a note
 saying where reconstruction ends and automation begins. Future releases prepend above it.

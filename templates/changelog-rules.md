@@ -6,9 +6,11 @@ and no release-time editing pass.
 ## How it works
 
 1. The PR **title** is a conventional commit — it becomes the squash commit subject.
-2. The PR **description** becomes the squash commit body. Additional conventional lines
-   inside the `<!-- changelog:start -->` / `<!-- changelog:end -->` block each become
-   their own changelog entry.
+2. The PR **description** becomes the squash commit body. Additional entries live inside
+   the `<!-- changelog:start -->` / `<!-- changelog:end -->` block, each wrapped in
+   `BEGIN_NESTED_COMMIT` / `END_NESTED_COMMIT` — a bare conventional line only splits out
+   for release-please's built-in types, so custom ones like `ops` would vanish silently.
+   Keep each entry under 70 characters; GitHub wraps the body at ~72 when squashing.
 3. `release-please` reads those commits on `master` and keeps an open
    `chore(main): release X.Y.Z` PR with the computed version and the `CHANGELOG.md` diff.
    Merging it tags the release and publishes the GitHub Release.

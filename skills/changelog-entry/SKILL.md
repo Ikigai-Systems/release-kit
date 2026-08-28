@@ -100,36 +100,57 @@ Write for the person affected, not the person who wrote the code.
   release-please appends the links.
 - Name the thing users see. "Space sidebar", "the import command", "table formulas" —
   not `SpaceSidebarController`, `DirectoryImporter`, `FormulaEvaluator`.
-- Keep it under roughly 100 characters. If it needs more, it is probably two entries.
+- Keep it under **70 characters**. GitHub hard-wraps a PR description at ~72 columns
+  when it builds the squash commit, and a wrapped entry loses its tail.
 - Never say "various", "several improvements", "misc" or "cleanup".
 
 ## Output
 
-Produce a conventional-commit **title** and, when the PR carries more than one
-user-visible change or a breaking note, a **body block** of further conventional-commit
-lines. release-please parses every conventional line in the body as its own entry.
+Produce a conventional-commit **title** — it becomes the squash commit subject and the
+primary changelog entry — plus, when the PR carries more than one user-visible change,
+a block of additional entries in the description.
 
 ```
 feat(spaces): group documents and tables into sidebar tabs
-
-fix(spaces): keep the sidebar scroll position when switching tabs
-ops: run `rails db:migrate` — adds an index on documents.space_id
 ```
 
-A PR with nothing worth mentioning still needs a well-formed title so release-please can
-classify it:
-
-```
-chore: extract editor connection lifecycle into a hook
-```
-
-When applying this to a live PR, keep the body block inside these markers so re-runs
-replace it and leave everything else in the description alone:
+Additional entries go between the markers, **each wrapped in a nested-commit block**:
 
 ```
 <!-- changelog:start -->
-...conventional lines...
+BEGIN_NESTED_COMMIT
+fix(spaces): keep the sidebar scroll position when switching tabs
+END_NESTED_COMMIT
+BEGIN_NESTED_COMMIT
+ops: run `rails db:migrate` — adds an index on documents.space_id
+END_NESTED_COMMIT
 <!-- changelog:end -->
+```
+
+Two rules here are not stylistic — get them wrong and the entry silently vanishes:
+
+- **Always use the `BEGIN_NESTED_COMMIT` / `END_NESTED_COMMIT` markers.** A bare
+  conventional line in a commit body is only split out when it follows a blank line
+  *and* its type is one of release-please's eleven built-ins (`feat`, `fix`, `docs`,
+  `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`). Custom types
+  — `ops`, `security`, `deps` — are dropped without warning. Nested-commit blocks are
+  extracted before any type matching, so they work for every type.
+- **Keep each entry under 70 characters,** for the wrapping reason above.
+
+A breaking change adds a footer inside the same nested block as its entry:
+
+```
+BEGIN_NESTED_COMMIT
+feat(cli)!: rename --url to --base-url
+BREAKING CHANGE: use --base-url; --url is no longer accepted
+END_NESTED_COMMIT
+```
+
+A PR with nothing worth mentioning still needs a well-formed title so release-please can
+classify it, and an empty block:
+
+```
+chore: extract editor connection lifecycle into a hook
 ```
 
 ## Worked examples
@@ -153,3 +174,4 @@ replace it and leave everything else in the description alone:
 | "This touches config, so it's breaking" | Breaking means an existing setup stops working. New optional config is `minor`, or an `ops` note. |
 | "Big diff, so minor at least" | Size is not impact. A 2000-line refactor is `chore`. |
 | "I'll polish the wording at release time" | There is no release-time edit. release-please overwrites it. |
+| "A plain `ops:` line in the body is fine" | Only built-in types split from a body. Custom types need `BEGIN_NESTED_COMMIT`. |
