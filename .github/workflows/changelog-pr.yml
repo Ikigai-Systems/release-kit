@@ -83,14 +83,16 @@ jobs:
                  beyond the title, plus a `BREAKING CHANGE:` footer when applicable. If
                  the title is the only entry, leave the block empty except for a short
                  note saying so.
-            4. Post one sticky comment summarising, in two or three lines: what a user
-               would notice, the resulting version bump, and anything you deliberately
-               left out of the changelog.
+            4. Summarise what you did, in two or three lines: what a user would notice,
+               the resulting version bump, and anything you deliberately left out of the
+               changelog. Post it with:
+                 gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body '...'
+               `--edit-last` keeps it to a single comment that updates on each push
+               instead of one per run.
 
             Do not modify any file in the repository. PR metadata only.
-          use_sticky_comment: "true"
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns 20
-            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr edit:*)"
+            --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr edit:*),Bash(gh pr comment:*)"
             --disallowedTools "Write,Edit,NotebookEdit,WebSearch,WebFetch"
