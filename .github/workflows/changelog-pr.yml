@@ -25,6 +25,13 @@ on:
         description: Model to run the classification with
         type: string
         default: claude-sonnet-5
+      max-turns:
+        description: >-
+          Turn ceiling for the classification. The action fails the job when the agent
+          overruns it, even though the work completed — so keep headroom. Observed: 13
+          turns on a small config PR, 22 on a multi-file perf change.
+        type: number
+        default: 40
     secrets:
       claude_code_oauth_token:
         required: true
@@ -93,6 +100,6 @@ jobs:
             Do not modify any file in the repository. PR metadata only.
           claude_args: |
             --model ${{ inputs.model }}
-            --max-turns 20
+            --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr edit:*),Bash(gh pr comment:*)"
             --disallowedTools "Write,Edit,NotebookEdit,WebSearch,WebFetch"
