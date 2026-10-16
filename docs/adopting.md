@@ -86,6 +86,22 @@ updates:
 
 Bot pull requests are skipped by the changelog workflow, so they cost nothing to run.
 
+A hidden type hides the entry but not its effect on the version. Dependabot copies
+upstream release notes into the PR description, which becomes the squash commit body,
+and a dependency's `BREAKING CHANGE:` line would make release-please cut a major release
+of your project. So the changelog workflow adds a `BEGIN_COMMIT_OVERRIDE` block holding
+only the title to every Dependabot PR, and release-please reads that instead of the body.
+If a bump really does break your users, say so in a human PR (`feat!:`).
+
+A Dependabot PR merged before this was in place can be fixed the same way: add the
+block to its description by hand, then re-run the release workflow.
+
+```markdown
+BEGIN_COMMIT_OVERRIDE
+deps: bump happy-dom from 20.14.5 to 21.0.1
+END_COMMIT_OVERRIDE
+```
+
 ## 6. Make the version reach your artifacts
 
 release-please tags each release and creates a GitHub Release, but **a tag pushed with
