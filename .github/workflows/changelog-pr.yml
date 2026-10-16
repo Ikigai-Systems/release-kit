@@ -41,7 +41,8 @@ jobs:
     name: Changelog entry
     runs-on: ubuntu-latest
     # Bot pull requests never get a Claude run. Dependabot commits are prefixed `deps:`
-    # by dependabot.yml and are hidden by the release-please changelog sections.
+    # by dependabot.yml and are hidden by the release-please changelog sections; the
+    # `dependabot` job below keeps their bodies from bumping the version.
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.user.type != 'Bot' &&
@@ -103,3 +104,50 @@ jobs:
             --max-turns ${{ inputs.max-turns }}
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr edit:*),Bash(gh pr comment:*)"
             --disallowedTools "Write,Edit,NotebookEdit,WebSearch,WebFetch"
+
+  dependabot:
+    name: Pin Dependabot commit to its title
+    runs-on: ubuntu-latest
+    # A hidden `deps:` section hides the entry, not the bump. Dependabot pastes upstream
+    # release notes into the description, the squash commit carries them, and a line
+    # starting `BREAKING CHANGE:` in a dependency's notes made release-please cut a major
+    # release of the consumer. A commit override in the description makes release-please
+    # read the title alone. A dependency change that really breaks the consumer is
+    # declared by a human PR (`feat!:`), not inherited from upstream notes.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      !contains(github.event.pull_request.labels.*.name, inputs.skip-label)
+    permissions:
+      pull-requests: write
+    concurrency:
+      group: changelog-dependabot-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Add or refresh the commit override
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr view "$PR" --repo "$REPO" --json title,body > pr.json
+          python3 - <<'PY'
+          import json, re
+          pr = json.load(open("pr.json"))
+          body = pr["body"] or ""
+          # Replace a block from an earlier run: Dependabot retitles the PR when it
+          # moves to a newer version, and the override must follow the title.
+          kept = re.sub(r"\s*<!-- commit-override:start -->.*?<!-- commit-override:end -->",
+                        "", body, flags=re.S).rstrip()
+          block = ("<!-- commit-override:start -->\n"
+                   "BEGIN_COMMIT_OVERRIDE\n" + pr["title"] + "\nEND_COMMIT_OVERRIDE\n"
+                   "<!-- commit-override:end -->")
+          new = kept + "\n\n" + block + "\n"
+          open("body.md", "w").write(new)
+          open("changed", "w").write("yes" if new.strip() != body.strip() else "no")
+          PY
+          if [ "$(cat changed)" = yes ]; then
+            gh pr edit "$PR" --repo "$REPO" --body-file body.md
+          else
+            echo "Override already matches the title."
+          fi
