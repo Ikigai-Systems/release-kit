@@ -1,6 +1,6 @@
 # release-kit
 
-Shared changelog and release automation for Ikigai Systems products.
+Shared changelog, release and dependency tooling for Ikigai Systems products.
 
 Two halves:
 
@@ -37,12 +37,26 @@ claude plugin install changelog@release-kit
 
 Then `/changelog` classifies the current branch or a given PR and applies the result.
 
+### Dependabot triage
+
+A second plugin, `dependabot`, holds the method for the weekly sweep of Dependabot PRs
+(inventory, read the real failure, sort into merge / recombine / reject / fix):
+
+```bash
+claude plugin install dependabot@release-kit
+```
+
+The skill is repo-agnostic. Facts about one repository — known flaky tests, packages held
+back on purpose, sub-projects with their own test commands — belong in that repository's
+`.claude/rules/dependabot.md`, which the skill reads first.
+
 ## Contents
 
 | Path | What |
 |---|---|
 | `skills/changelog-entry/SKILL.md` | The judgment rules — the thing worth reading |
 | `commands/changelog.md` | `/changelog` slash command |
+| `plugins/dependabot/skills/dependabot-triage/` | Dependabot sweep method and failure-log helper |
 | `.github/workflows/changelog-pr.yml` | Reusable PR classification workflow |
 | `.github/workflows/release.yml` | Reusable release-please wrapper |
 | `templates/` | Starter configs to copy into a consuming repo |
