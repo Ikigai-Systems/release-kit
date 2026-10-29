@@ -46,7 +46,7 @@ done
 gh pr checks <N>
 
 # 3. Get the *actual* error out of a failing job (logs are 95% runner noise)
-scripts/why-failed.sh <job-url-or-id>      # relative to this skill's directory
+<skill dir>/scripts/why-failed.sh <job-url-or-id>   # the script next to this SKILL.md
 ```
 
 Then classify each PR with the decision tree below and work the buckets in order:
@@ -81,8 +81,8 @@ Use the helper, which strips the `job\tstep\ttimestamp` prefix and keeps only li
 carry a diagnosis:
 
 ```bash
-scripts/why-failed.sh 103201174811
-scripts/why-failed.sh https://github.com/<owner>/<repo>/actions/runs/34580022116/job/103201174811
+<skill dir>/scripts/why-failed.sh 103201174811
+<skill dir>/scripts/why-failed.sh https://github.com/<owner>/<repo>/actions/runs/34580022116/job/103201174811
 ```
 
 Almost every red Dependabot PR is one of two shapes, and both are visible in the first
@@ -106,18 +106,16 @@ gh api repos/<owner>/<repo>/actions/artifacts/<id>/zip > shots.zip
 unzip -o -q shots.zip -d shots && find shots -name '*.png'
 ```
 
-This is not optional polish. A bump once failed a test that looked exactly like a flaky
-timing assertion; the screenshot showed a `PATCH` firing *after* the Escape keystroke
-that was supposed to cancel the edit. The assertion checked only the rendered title,
-which reverts correctly even when the save goes out. Server logs, when uploaded, give the
-other side of the same moment.
+This is not optional polish: a failure that reads as a flaky timing assertion can be a
+real request in the network panel that the assertion never looked at. Server logs, when
+uploaded, give the other side of the same moment.
 
 ## Step 3 — Classify
 
 ```
 Is the PR green?
 ├─ yes ─────────────────────────────────────────────► BUCKET A: merge
-└─ no → run scripts/why-failed.sh
+└─ no → run why-failed.sh
    ├─ ERESOLVE, and the conflicting package is bumped
    │  by ANOTHER open Dependabot PR ──────────────────► BUCKET B: recombine
    ├─ ERESOLVE against a ceiling we cannot move
@@ -207,9 +205,9 @@ removing the entry.
 
 ```yaml
     ignore:
-      # typescript-eslint 8.70.0 -- the newest release, alphas included -- peers
+      # <blocker> <version> -- the newest release, alphas included -- peers
       # typescript ">=4.8.4 <6.1.0". TypeScript 7 cannot install alongside it
-      # (see PR #127). Remove this once typescript-eslint widens that range.
+      # (see PR #<n>). Remove this once <blocker> widens that range.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 ```
@@ -246,8 +244,7 @@ re-run. That sequence is also the experiment — if the bump goes green, the lat
 
 To confirm a race rather than guess at one, force the ordering instead of waiting for it
 (dispatch two events in the same tick, for instance). Verify the fix against the
-**database or server**, not the rendered UI: a UI can revert correctly while the save
-still goes out.
+**database or server**, not the rendered UI.
 
 ## Per-ecosystem gotchas
 

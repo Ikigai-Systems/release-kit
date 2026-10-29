@@ -2,7 +2,7 @@
 
 Shared changelog, release and dependency tooling for Ikigai Systems products.
 
-Two halves:
+Changelog and release automation comes in two halves (Dependabot triage is covered below):
 
 - **Judgment** — a Claude Code plugin (`changelog`) holding the rules for whether a change
   belongs in a changelog, what its semver impact is, and how to word it. Used identically
