@@ -1,0 +1,11 @@
+{
+  "name": "dependabot",
+  "description": "Triage a batch of Dependabot pull requests: inventory, read why each is red, sort into merge / recombine / reject / fix, and act.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ikigai Systems"
+  },
+  "homepage": "https://github.com/Ikigai-Systems/release-kit",
+  "repository": "https://github.com/Ikigai-Systems/release-kit",
+  "keywords": ["dependabot", "dependencies", "triage", "github"]
+}
