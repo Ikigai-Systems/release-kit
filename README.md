@@ -56,7 +56,7 @@ back on purpose, sub-projects with their own test commands — belong in that re
 |---|---|
 | `skills/changelog-entry/SKILL.md` | The judgment rules — the thing worth reading |
 | `commands/changelog.md` | `/changelog` slash command |
-| `plugins/dependabot/skills/dependabot-triage/` | Dependabot sweep method and failure-log helper |
+| `plugins/dependabot/skills/dependabot-triage/` | Dependabot sweep method, failure-log helper and merge-and-wait script |
 | `.github/workflows/changelog-pr.yml` | Reusable PR classification workflow |
 | `.github/workflows/release.yml` | Reusable release-please wrapper |
 | `templates/` | Starter configs to copy into a consuming repo |

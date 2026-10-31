@@ -59,6 +59,15 @@ current (`git fetch origin && git rev-list --left-right --count HEAD...origin/<d
 A bot PR opened last week was validated against a default branch that no longer exists:
 its green checks have expired.
 
+**Know what CI proves before trusting it.** Open the workflows and see what actually runs
+on a pull request. Many repos have no CI at all, or CI that skips lint and build, and
+then a green PR proves nothing: a bump can pass every check and still break the build, or
+ship a library with its type declarations missing. Where CI does not run the build, run
+`npm ci`, lint, the build and the tests yourself in a worktree before merging, and for a
+published library check that the built artifact has the files `package.json` points at
+(`main`, `types`, `exports`). Record in the repo's rules file what its CI does and does not
+cover, so the next sweep starts from there.
+
 Diff a PR's failures against the repo's known flakes (from its rules file). But **"it's
 flaky" is a hypothesis about one named test, never a verdict on a red run.** Treating it
 as a verdict is how a real regression ships. Before writing any failure off:
@@ -147,6 +156,20 @@ Check whether the repo allows auto-merge before relying on `--auto`: where
 `allow_auto_merge` is false it merges immediately with checks still pending. Merge
 explicitly, one at a time, and re-check the next PR after each merge.
 
+**If a merge deploys, wait for the deploy before the next merge.** A deploy that replaces
+one still running can be reported as failed by the platform although nothing is wrong, and
+a real failure stacked under further merges is hard to attribute. `scripts/merge-and-wait.sh`
+does the loop (wait for CLEAN, merge, wait for the deploy workflow on the merge commit,
+stop on failure):
+
+```bash
+DEPLOY_WORKFLOW="<deploy workflow name>" <skill dir>/scripts/merge-and-wait.sh <pr>...
+```
+
+It is for Dependabot PRs; PRs you wrote yourself wait for the user. Make the repo queue
+its deploys as well (`templates/deploy-concurrency.md` in release-kit), so a batch does
+not depend on this script alone.
+
 #### Merge order: one PR per lockfile, then rebase the rest
 
 PRs that touch the same lockfile conflict the moment one of them merges. A green batch is
@@ -197,6 +220,12 @@ Verify, commit both `package.json` and `package-lock.json`, and say
 "Supersedes #A and #B" in the body so the bot PRs can be closed with a pointer.
 
 ### Bucket C — reject and record why
+
+**Before ignoring a major, check it is a real blocker.** Major releases often rename an
+option rather than remove a feature (a plugin that stops emitting a file because its flag
+was renamed, a new required peer that is one `npm install -D` away). Read the project's
+README or changelog and try the migration for a few minutes first; if the bump is
+fixable, make it bucket D and fix it in its own PR instead of ignoring it.
 
 Closing the PR alone is not enough: Dependabot re-proposes the next patch release next
 week and you re-litigate it weekly. Add an ignore entry to `.github/dependabot.yml`
@@ -259,6 +288,12 @@ To confirm a race rather than guess at one, force the ordering instead of waitin
   bucket C, referencing the existing ignore entries.
 - **Ruby/bundler PRs** carry no lockfile peer resolution, so they are almost always
   bucket A or D. Run the test suite rather than trusting the bot.
+- **A library's PR can be green while its output is wrong.** Check the built artifact, not
+  just the exit code: the files `package.json` points at exist and the type declarations
+  export what the entry point does.
+- **Merging a PR that edits `.github/workflows/*` needs the `workflow` scope** on the
+  `gh` token. Without it `gh pr merge` fails with a bare HTTP 403 that does not name the
+  scope; run `gh auth refresh -h github.com -s workflow -c`.
 - **github-actions PRs** change what CI runs, not the app. Read the release notes for
   changed inputs, and pin to a commit SHA if the repo does so for third-party actions.
 
