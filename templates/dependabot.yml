@@ -1,0 +1,44 @@
+version: 2
+
+# Starter Dependabot config for a Node project. Copy to .github/dependabot.yml and trim.
+#
+# - `prefix: deps` lets a changelog config hide dependency bumps (see changelog-rules.md).
+# - Weekly, with a small PR limit, so updates arrive on a rolling basis instead of in a pile.
+# - Groups keep packages that must move together in one PR (a partial bump of a family
+#   can create an unresolvable peer-dependency conflict), and collapse the long tail of
+#   minor/patch bumps into one.
+# - Every `ignore` entry names the blocker and the condition for removing it. A rejection
+#   with no entry comes back next week; one with no comment gets re-litigated.
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    commit-message:
+      prefix: deps
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Adjust to what the project uses; delete groups it does not need.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      eslint:
+        patterns: ["eslint", "@eslint/*", "eslint-plugin-*", "typescript-eslint", "@typescript-eslint/*"]
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Example shape -- replace or delete:
+      # <package> <version> breaks <what>, verified in PR #<n>. Remove this entry when
+      # <condition>.
+      # - dependency-name: "<package>"
+      #   update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    commit-message:
+      prefix: deps
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        update-types: ["minor", "patch"]
