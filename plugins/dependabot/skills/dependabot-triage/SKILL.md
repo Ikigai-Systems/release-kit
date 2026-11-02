@@ -170,16 +170,21 @@ It is for Dependabot PRs; PRs you wrote yourself wait for the user. Make the rep
 its deploys as well (`templates/deploy-concurrency.md` in release-kit), so a batch does
 not depend on this script alone.
 
-#### Merge order: one PR per lockfile, then rebase the rest
+#### Merge order: a queue per lockfile, rebasing only the next PR
 
-PRs that touch the same lockfile conflict the moment one of them merges. A green batch is
-therefore never "merge them all": group the PRs by lockfile (each `package-lock.json`,
-`Gemfile.lock`, `go.sum`, workflows) and:
+PRs that touch the same lockfile conflict the moment one of them merges, and every merge
+makes the rest stale. Rebasing the whole batch up front therefore wastes a CI run on each
+PR that is not merged next, and Dependabot often closes or regroups the leftovers anyway
+(one sweep: three PRs closed and replaced, the rest rebased twice). So keep a queue and
+rebase **only the PR you are about to merge**:
 
-1. Merge the largest PR in each group first. PRs in *different* groups touch disjoint
-   files and can be merged back to back.
-2. Post `@dependabot rebase` on every PR left behind.
-3. Wait for each one to resolve as one of two outcomes:
+1. Group the PRs by lockfile (each `package-lock.json`, `Gemfile.lock`, `go.sum`,
+   workflows) and order each group, largest first. PRs in *different* groups touch
+   disjoint files, so each group's head of queue proceeds in parallel.
+2. A PR whose checks already ran on the current default branch needs no rebase: merge it.
+   Otherwise post `@dependabot rebase` on the head of its group's queue only. Leave the
+   rest untouched.
+3. Wait for the head to resolve as one of two outcomes:
    - **The PR was closed.** Dependabot closes a PR it decides is no longer needed (for
      example, an earlier group PR's lockfile already moved the package) and says why in
      a comment. Read the comment and move on.
@@ -193,7 +198,8 @@ therefore never "merge them all": group the PRs by lockfile (each `package-lock.
          [ "$(gh pr view <N> --json headRefOid --jq .headRefOid)" != "$old" ]; do sleep 20; done
    gh pr checks <N> --watch
    ```
-4. Merge once green on the new base, and repeat for the next PR in that group.
+4. Merge once green on the new base. Then re-list the open PRs (Dependabot may have
+   closed or replaced some), and take the next one in that group's queue from step 2.
 
 ### Bucket B — recombine a split pair
 
