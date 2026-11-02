@@ -180,10 +180,12 @@ rebase **only the PR you are about to merge**:
 
 1. Group the PRs by lockfile (each `package-lock.json`, `Gemfile.lock`, `go.sum`,
    workflows) and order each group, largest first. PRs in *different* groups touch
-   disjoint files, so each group's head of queue proceeds in parallel.
-2. A PR whose checks already ran on the current default branch needs no rebase: merge it.
-   Otherwise post `@dependabot rebase` on the head of its group's queue only. Leave the
-   rest untouched.
+   disjoint files, so their rebases and CI runs can overlap. Merges still go one at a
+   time (see above).
+2. A PR whose head already contains the default branch needs no rebase: merge it. Check
+   with `gh api repos/<owner>/<repo>/compare/<default>...<head-branch> --jq .behind_by`
+   (0 means current). Otherwise post `@dependabot rebase` on the head of its group's
+   queue only. Leave the rest untouched.
 3. Wait for the head to resolve as one of two outcomes:
    - **The PR was closed.** Dependabot closes a PR it decides is no longer needed (for
      example, an earlier group PR's lockfile already moved the package) and says why in
@@ -196,7 +198,7 @@ rebase **only the PR you are about to merge**:
    old=$(gh pr view <N> --json headRefOid --jq .headRefOid)
    until [ "$(gh pr view <N> --json state --jq .state)" != OPEN ] ||
          [ "$(gh pr view <N> --json headRefOid --jq .headRefOid)" != "$old" ]; do sleep 20; done
-   gh pr checks <N> --watch
+   [ "$(gh pr view <N> --json state --jq .state)" = OPEN ] && gh pr checks <N> --watch
    ```
 4. Merge once green on the new base. Then re-list the open PRs (Dependabot may have
    closed or replaced some), and take the next one in that group's queue from step 2.
