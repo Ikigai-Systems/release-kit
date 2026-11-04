@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    commit-message:
+      prefix: deps
+    directory: "/"
+    schedule:
+      interval: weekly
+    # Actions are pinned to commit SHAs; Dependabot bumps the SHA and its version comment.
+    # A week's wait means a hijacked release is usually caught before it is proposed here.
+    cooldown:
+      default-days: 7
