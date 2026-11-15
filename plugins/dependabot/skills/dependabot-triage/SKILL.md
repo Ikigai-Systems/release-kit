@@ -52,6 +52,50 @@ gh pr checks <N>
 Then classify each PR with the decision tree below and work the buckets in order:
 **A (merge) → B (recombine) → C (reject) → D (fix)**.
 
+## Working unattended
+
+The aim is a sweep that needs no human: green bot PRs get merged, and a person is pulled
+in only when a bump needs source changes (a major migration), when tests fail for a real
+reason, or when the repo's rules file reserves the decision.
+
+**Never end a turn waiting for something that will not notify you.** A Dependabot rebase,
+a `recreate` and a CI run send no message back; only a background command of yours that
+exits does. Wait inside one that exits on the event, with a bound, and carry on with other
+buckets meanwhile:
+
+```bash
+old=$(gh pr view <N> --json headRefOid --jq .headRefOid); end=$((SECONDS+600))
+until [ "$(gh pr view <N> --json state --jq .state)" != OPEN ] ||
+      [ "$(gh pr view <N> --json headRefOid --jq .headRefOid)" != "$old" ]; do
+  [ $SECONDS -ge $end ] && { echo "unchanged after 10 min"; exit 0; }; sleep 30; done
+```
+
+**An unresponsive bot has a ladder, climbed on your own, about 10 minutes per rung:**
+`@dependabot rebase`, then `@dependabot recreate`, then `gh pr update-branch <N>` on the
+bot's branch (CI reruns on a current base), then a PR of your own that replaces it
+(Bucket B). Do not stop at a rung and report; stop only when the PR is merged, closed, or
+needs a person for one of the reasons above.
+
+**PRs you write to repair bot PRs merge on their own** (a lockfile the bot got wrong, a
+conflict between two bot PRs, a split pair recombined, a `dependabot.yml` ignore). Merge
+with the same script once ALL of these hold; otherwise it is a code change and the user
+merges:
+
+- it changes only manifests, lockfiles, `.github/dependabot.yml` or workflow action
+  versions, and the same packages at the same versions as the PRs it supersedes
+- no source, spec or config edit, no compatibility shim, no extra bump
+- the manifest's release-managed `version` field is unchanged
+- install, lint and typecheck pass locally and CI is green on the final head, re-checked
+  against the default branch right before merging
+- the superseded bot PRs are closed with a pointer afterwards
+
+**Instructions are never auto-merged**: this skill, `CLAUDE.md`, and the repo's rules
+files, including `.claude/rules/dependabot.md`. A PR touching them goes to the user, in
+its own PR.
+
+If the harness's permission layer refuses a merge, say so once and ask for the permission
+rule; do not retry it another way.
+
 ## Step 1 — Establish a baseline first
 
 Before blaming any PR, know what the default branch does on its own, and confirm it is
@@ -93,6 +137,10 @@ carry a diagnosis:
 <skill dir>/scripts/why-failed.sh 103201174811
 <skill dir>/scripts/why-failed.sh https://github.com/<owner>/<repo>/actions/runs/34580022116/job/103201174811
 ```
+
+A job named with an unexpanded expression (`run-e2e-tests (${{ matrix... }})`) that failed
+after 0s is a cancelled, superseded run ("Canceling since a higher priority waiting
+request" in its annotations), not a result; judge the jobs that actually ran.
 
 Almost every red Dependabot PR is one of two shapes, and both are visible in the first
 20 lines of output:
@@ -166,7 +214,8 @@ stop on failure):
 DEPLOY_WORKFLOW="<deploy workflow name>" <skill dir>/scripts/merge-and-wait.sh <pr>...
 ```
 
-It is for Dependabot PRs; PRs you wrote yourself wait for the user. Make the repo queue
+It is for Dependabot PRs and for repair PRs that meet the conditions in "Working
+unattended"; any other PR you wrote waits for the user. Make the repo queue
 its deploys as well (`templates/deploy-concurrency.md` in release-kit), so a batch does
 not depend on this script alone.
 
@@ -226,6 +275,17 @@ npm ci                              # the exact thing CI runs — must not ERESO
 
 Verify, commit both `package.json` and `package-lock.json`, and say
 "Supersedes #A and #B" in the body so the bot PRs can be closed with a pointer.
+
+### Bucket B2 — the bot's lockfile is wrong
+
+A third shape: `npm ci` fails in seconds with `Missing: <pkg> from lock file` (npm
+writes some optional peers only on a regenerate). A rebase cannot fix it, and neither can
+a re-run. Build the replacement from the default branch: apply the bot's dependency
+changes to *its* `package.json` (a patch, not a copy of the bot's file, which carries the
+bot's stale release-managed `version`), run `npm install`, confirm `npm ci`, lint and
+typecheck, and open it as a repair PR (see Working unattended). Close the bot PRs after.
+A merge conflict with another bot PR's lockfile is the same repair: take the default
+branch's lockfile and regenerate.
 
 ### Bucket C — reject and record why
 
