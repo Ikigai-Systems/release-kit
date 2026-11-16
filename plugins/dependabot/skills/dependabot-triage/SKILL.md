@@ -1,6 +1,7 @@
 ---
 name: dependabot-triage
 description: Triage the weekly batch of Dependabot pull requests in a repository - inventory the open bot PRs, read why each one is red, sort them into merge / recombine / reject / fix, and act. Use on a dependency sweep, or whenever the user says "dependabot", "dependency PRs", "bump PRs", "deps PRs", or asks why a dependency bump is failing CI.
+allowed-tools: Bash(*dependabot-triage/scripts/merge-and-wait.sh*), Bash(gh pr comment:*), Bash(gh pr update-branch:*), Bash(gh pr close:*)
 ---
 
 # Dependabot triage
