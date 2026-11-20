@@ -287,9 +287,9 @@ bot's stale release-managed `version`), run `npm install`, confirm `npm ci`, lin
 typecheck, and open it as a repair PR (see Working unattended). Close the bot PRs after.
 Install the bot's **exact** versions (`npm install pkg@x.y.z`), not the new ranges: a
 range resolves to whatever is newest today, which can be newer than the bot's PR and
-turns the repair into extra bumps (check `npm ls --depth=0`). The error recurs for every
-bot PR on that lockfile, even one rebased onto a repaired base, so after the first one
-skip the rebase rungs and go straight to a repair PR.
+turns the repair into extra bumps (check `npm ls --depth=0`). The error can recur
+even after a rebase onto a repaired base (seen once): if a rebase leaves the same error,
+go straight to a repair PR instead of climbing the remaining rungs.
 A merge conflict with another bot PR's lockfile is the same repair: take the default
 branch's lockfile and regenerate.
 
