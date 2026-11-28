@@ -53,11 +53,43 @@ gh pr checks <N>
 Then classify each PR with the decision tree below and work the buckets in order:
 **A (merge) → B (recombine) → C (reject) → D (fix)**.
 
+## When the sweep is done
+
+A sweep is done when **every open bot PR has an outcome that names its cause**, not when
+the list is empty. An empty list is what closing and ignoring everything produces, so a
+completion condition that says "no open PRs" rewards shortcuts. Each PR ends as one of:
+
+- merged (or closed as superseded by a PR that merged);
+- closed with a comment that names an **evidenced** upstream blocker (Bucket C proof);
+- waiting on the user, with the reason, for a decision the rules reserve to them.
+
+An ignore entry, a pin or a "flaky" verdict is not an outcome by itself: it counts only
+with the evidence its bucket asks for.
+
+**At the start, tell the user the goal, so a session can run to the end on its own.** `/goal`
+is a command only the user can run, so print it as the first line and carry on to the same
+condition whether or not they set it:
+
+```
+/goal Every open Dependabot PR is merged, or closed as superseded by a merged PR, or closed
+with a comment naming an evidenced upstream blocker. An ignore, pin or flake verdict counts
+only with that evidence. Stop and ask only for a decision the repo's rules reserve to me.
+```
+
 ## Working unattended
 
 The aim is a sweep that needs no human: green bot PRs get merged, and a person is pulled
 in only when a bump needs source changes (a major migration), when tests fail for a real
 reason, or when the repo's rules file reserves the decision.
+
+**Check permissions before the first merge, not at the first refusal.** An unattended sweep
+runs `scripts/merge-and-wait.sh`, `gh pr close` and `gh pr comment`, and for a hard failure
+pushes scratch branches (`experiment/*`) and runs `gh workflow run <e2e workflow> --ref
+<scratch branch>`. If the harness would refuse any of them, ask once, up front, for the
+permission rules, and name what each is for. Otherwise the sweep stops at the first merge.
+
+**Batch the questions for the user.** Merging code PRs waits for them. Collect every such
+PR into one question with the numbers and the evidence, instead of asking per PR.
 
 **Never end a turn waiting for something that will not notify you.** A Dependabot rebase,
 a `recreate` and a CI run send no message back; only a background command of yours that
@@ -295,6 +327,12 @@ branch's lockfile and regenerate.
 
 ### Bucket C — reject and record why
 
+**The default is to make the update work.** Bucket C is the last rung, after Bucket D has
+been tried, and it needs proof in the PR and the closing comment: the `npm view` output
+(or equivalent) showing that no published version of the blocker accepts the bump, or the
+failing test and the cause you found for why the code cannot move yet. "It fails and I
+don't know why" is Bucket D, not C. An ignore added without that evidence is a shortcut.
+
 **Before ignoring a major, check it is a real blocker.** Major releases often rename an
 option rather than remove a feature (a plugin that stops emitting a file because its flag
 was renamed, a new required peer that is one `npm install -D` away). Read the project's
@@ -331,7 +369,13 @@ the file rather than closing silently.
 The install succeeded and the new version changed behaviour. Take it on a branch, one PR
 per dependency. Reproduce locally before reading release notes — the failure tells you
 which subsystem moved. If the fix is larger than the bump is worth, demote it to
-bucket C with an ignore entry and a note.
+bucket C with an ignore entry and a note, with the cause you found written down.
+
+A failure you cannot explain locally is not a reason to stop. Find the mechanism with
+evidence: see `references/ci-only-failures.md` (bisect on CI, instrument the page, read
+the full error). A test that fails on a bump and passes on the default branch is a
+regression until a named mechanism says otherwise, and it needs a regression test that
+fails without the fix and passes with it.
 
 **The bump is not always what is broken.** It can equally expose a bug that was already
 there, latent, waiting on an ordering that never came up before. The tell is a failure
@@ -372,6 +416,17 @@ To confirm a race rather than guess at one, force the ordering instead of waitin
   changed inputs, and pin to a commit SHA if the repo does so for third-party actions.
 
 ## Closing out
+
+**Re-inventory before you stop.** Dependabot opens PRs while you work (one appeared after a
+sweep had "finished"). Re-list the open bot PRs; if there are new ones, sweep them. A PR
+waiting on a bot rebase gets a `ScheduleWakeup` or a bounded background wait, not an open turn.
+
+**Clean up what you made:** delete scratch branches from the remote (`git push origin
+--delete experiment/...`, nothing under `experiment/` stays on origin), remove your
+worktrees, and delete the remote branches of your own merged and closed PRs.
+
+**End with a report**, one line per PR: number, outcome, and the cause in a few words.
+Mention anything left for the user and any finding you could not root-cause.
 
 For each bucket-C closure and each bucket-B supersession, leave a comment on the bot PR
 pointing at the replacement or the ignore entry, so the next sweep does not re-investigate
